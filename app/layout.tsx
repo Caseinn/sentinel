@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     siteName: "Sentinel",
     images: [
       {
-        url: "/logo/og-image.png",
+        url: "/og-images.webp",
         width: 1200,
         height: 630,
         alt: "Sentinel Security Scanner",
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Sentinel | Stateless Security Scanner",
     description: "Instant security analysis for any URL. Zero storage. Complete privacy.",
-    images: ["/logo/og-image.png"],
+    images: ["/og-images.webp"],
     creator: "@caseinn",
   },
   icons: {
