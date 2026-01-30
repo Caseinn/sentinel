@@ -1,0 +1,28 @@
+# Sentinel Security Scanner Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sentinel.security/sitemap.xml
+
+# Security - Prevent indexing of sensitive endpoints
+Disallow: /api/
+Disallow: /_next/
+
+# Host
+Host: https://sentinel.security
+
+# Crawl-delay
+Crawl-delay: 10
+
+# Google-specific
+User-agent: Googlebot
+Allow: /
+
+# Bing-specific
+User-agent: Bingbot
+Allow: /
+
+# Other bots
+User-agent: *
+Allow: /
