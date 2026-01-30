@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertTriangle, Eye, Zap, Key, Lock, FileCode, Globe, Cookie } from "lucide-react";
+import { AlertTriangle, Eye, Zap, Key, Lock, Globe, Cookie } from "lucide-react";
 
 export function ProblemSolutionSection() {
   return (
@@ -72,9 +72,7 @@ export function ProblemSolutionSection() {
                 "50+ secret patterns: Stripe, AWS, GitHub, OpenAI, JWT, DB URLs",
                 "12 security headers: CSP, HSTS, COOP, CORP, and more",
                 "Cookie analysis: Secure, HttpOnly, SameSite flags",
-                "JavaScript security: eval(), inline scripts, XSS patterns",
                 "Mixed content detection: HTTP resources on HTTPS",
-                "SRI validation: Scripts and styles without integrity",
                 "GraphQL introspection: Exposed endpoint detection",
                 "Tech fingerprinting: 100+ frameworks & services",
               ].map((item, i) => (

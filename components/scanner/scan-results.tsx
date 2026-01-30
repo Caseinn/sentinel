@@ -64,25 +64,6 @@ export function ScanResults({ result, onRescan }: ScanResultsProps) {
     return "";
   };
 
-  const getGradeClass = (grade: string) => {
-    switch (grade) {
-      case "A": return "grade-a";
-      case "B": return "grade-b";
-      case "C": return "grade-c";
-      case "D": return "grade-d";
-      case "F": return "grade-f";
-      default: return "";
-    }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-cyan-400";
-    if (score >= 80) return "text-cyan-300";
-    if (score >= 70) return "text-amber-400";
-    if (score >= 60) return "text-orange-400";
-    return "text-red-400";
-  };
-
   const getConfidenceBadge = (confidence: string) => {
     switch (confidence) {
       case "high": return <Badge className="text-xs bg-red-500/20 text-red-400 border-red-500/30">HIGH</Badge>;
@@ -149,28 +130,12 @@ export function ScanResults({ result, onRescan }: ScanResultsProps) {
         </motion.div>
       )}
 
-      <div className="grid md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className={`md:col-span-1 rounded-lg border-2 p-6 text-center relative overflow-hidden ${result.grade === "A" ? "glow-cyan" : ""}`}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent" />
-          <div className="relative">
-            <div className="text-xs text-muted-foreground mb-2 tracking-wider">SECURITY GRADE</div>
-            <div className={`text-6xl font-bold ${getGradeClass(result.grade)}`}>
-              {result.grade}
-            </div>
-            <div className={`text-lg mt-1 ${getScoreColor(result.score)}`}>{result.score}/100</div>
-          </div>
-        </motion.div>
-
+      <div className="grid gap-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.15 }}
-          className="md:col-span-3 rounded-lg glass-card border border-border/50 p-6"
+          className="md:col-span-2 rounded-lg glass-card border border-border/50 p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -618,114 +583,184 @@ export function ScanResults({ result, onRescan }: ScanResultsProps) {
           )}
         </AccordionItem>
 
-        <AccordionItem
-          isOpen={openSections.has("tech")}
-          onToggle={() => toggleSection("tech")}
-          title="Technology Stack"
-          icon={<Code className="w-5 h-5" />}
-          badge={result.technologies.length}
-        >
-          {result.technologies.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No technologies detected.
+          <AccordionItem
+            isOpen={openSections.has("mixed")}
+            onToggle={() => toggleSection("mixed")}
+            title="Mixed Content"
+            icon={<Globe className="w-5 h-5" />}
+            badge={result.mixedContentAnalysis.totalMixedContent}
+            badgeColor={result.mixedContentAnalysis.summary.high > 0 ? "amber" : result.mixedContentAnalysis.totalMixedContent > 0 ? "red" : "green"}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div className="text-center p-3 rounded-lg bg-muted/50 border border-border">
+                <div className="text-2xl font-bold text-foreground">{result.mixedContentAnalysis.totalMixedContent}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                <div className="text-2xl font-bold text-red-400">{result.mixedContentAnalysis.summary.critical}</div>
+                <div className="text-xs text-muted-foreground">Critical</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                <div className="text-2xl font-bold text-orange-400">{result.mixedContentAnalysis.summary.high}</div>
+                <div className="text-xs text-muted-foreground">High</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <div className="text-2xl font-bold text-amber-400">{result.mixedContentAnalysis.summary.medium}</div>
+                <div className="text-xs text-muted-foreground">Medium</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-slate-500/10 border border-slate-500/30">
+                <div className="text-2xl font-bold text-slate-400">{result.mixedContentAnalysis.summary.low}</div>
+                <div className="text-xs text-muted-foreground">Low</div>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {result.technologies.map((tech, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-lg bg-muted/50 border border-border"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-medium text-sm">{tech.name}</div>
-                      <div className="text-xs text-muted-foreground">{tech.category}</div>
+
+            {result.mixedContentAnalysis.totalMixedContent === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-cyan-400 text-4xl mb-2">✓</div>
+                <h3 className="font-medium mb-1">No mixed content detected</h3>
+                <p className="text-sm text-muted-foreground">
+                  All resources are loaded securely over HTTPS.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {result.mixedContentAnalysis.mixedContent.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`p-4 rounded-lg border ${
+                      item.severity === "critical" ? "bg-red-500/10 border-red-500/20" :
+                      item.severity === "high" ? "bg-orange-500/10 border-orange-500/20" :
+                      item.severity === "medium" ? "bg-amber-500/10 border-amber-500/20" :
+                      "bg-slate-500/10 border-slate-500/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getSeverityBadge(item.severity)}
+                        <span className="text-sm font-medium capitalize">{item.type}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">Line {item.sourceLine}</span>
+                    </div>
+                    <div className="text-xs font-mono text-muted-foreground break-all">{item.url}</div>
+                    <div className="text-xs text-muted-foreground mt-2">{item.sourceLocation}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AccordionItem>
+
+          <AccordionItem
+            isOpen={openSections.has("graphql")}
+            onToggle={() => toggleSection("graphql")}
+            title="GraphQL Security"
+            icon={<Eye className="w-5 h-5" />}
+            badge={result.graphQLAnalysis.endpoint ? 1 : 0}
+            badgeColor={result.graphQLAnalysis.severity === "high" ? "red" : result.graphQLAnalysis.severity === "medium" ? "amber" : "green"}
+          >
+            {result.graphQLAnalysis.endpoint ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    {getSeverityBadge(result.graphQLAnalysis.severity || "medium")}
+                    <span className="font-medium">GraphQL Endpoint Detected</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    A GraphQL endpoint was found at <code className="text-xs bg-muted px-2 py-1 rounded">{result.graphQLAnalysis.endpoint}</code>
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className={result.graphQLAnalysis.introspectionEnabled ? "text-red-400" : "text-cyan-400"}>
+                        {result.graphQLAnalysis.introspectionEnabled ? "✗" : "✓"}
+                      </span>
+                      <span>Introspection {result.graphQLAnalysis.introspectionEnabled ? "enabled" : "disabled"}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="text-xs text-muted-foreground">Confidence</div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-24 h-2 rounded-full bg-muted">
-                          <div
-                            className={`h-full rounded-full ${
-                              tech.confidence === "high" ? "bg-cyan-400" : tech.confidence === "medium" ? "bg-amber-400" : "bg-slate-400"
-                            }`}
-                            style={{ width: `${tech.confidenceScore}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium">{tech.confidenceScore}%</span>
-                      </div>
+                      <span className={result.graphQLAnalysis.graphiqlAvailable ? "text-amber-400" : "text-cyan-400"}>
+                        {result.graphQLAnalysis.graphiqlAvailable ? "!" : "✓"}
+                      </span>
+                      <span>GraphiQL {result.graphQLAnalysis.graphiqlAvailable ? "available" : "not found"}</span>
                     </div>
                   </div>
-                  
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Evidence:</div>
-                    {tech.evidence.map((ev, j) => (
-                      <div key={j} className="flex items-center gap-2 text-xs">
-                        <span className="text-cyan-400">•</span>
-                        <span className="font-mono text-muted-foreground">{ev}</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {tech.signals.map((signal, j) => (
-                      <Badge key={j} variant="outline" className="text-xs border-slate-500/30 text-slate-400">
-                        {signal.type}: {signal.value}
-                      </Badge>
-                    ))}
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </AccordionItem>
-
-        <AccordionItem
-          isOpen={openSections.has("scoring")}
-          onToggle={() => toggleSection("scoring")}
-          title="Scoring Details"
-          icon={<Terminal className="w-5 h-5" />}
-        >
-          <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border">
-            <div className="text-3xl font-bold text-center text-cyan-400">{result.score}</div>
-            <div className="text-center text-sm text-muted-foreground">Final Score</div>
-          </div>
-          
-          <div className="space-y-3">
-            {result.scoringDetails.map((detail, i) => (
-              <div
-                key={i}
-                className="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-sm font-medium ${detail.points < 0 ? "text-red-400" : "text-cyan-400"}`}>
-                      {detail.item}
-                    </span>
-                    <Badge className={`text-xs ${
-                      detail.category === "secret" 
-                        ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                        : detail.category === "header" 
-                        ? "bg-amber-500/20 text-amber-400 border-amber-500/30" 
-                        : "bg-slate-500/20 text-slate-400 border-slate-500/30"
-                    }`}>
-                      {detail.category}
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground mb-2">{detail.reason}</div>
-                  <div className="text-xs p-2 rounded bg-amber-500/10 border border-amber-500/20">
-                    <span className="font-medium">Fix: </span>
-                    {detail.recommendation}
-                  </div>
-                </div>
-                <div className={`text-lg font-bold ml-4 ${detail.points < 0 ? "text-red-400" : "text-cyan-400"}`}>
-                  {detail.points}
+                <div className="p-3 rounded bg-amber-500/10 border border-amber-500/20 text-sm">
+                  <span className="font-medium text-amber-400">Recommendation: </span>
+                  Disable introspection in production by setting <code>graphql.introspection = false</code> in your schema configuration.
                 </div>
               </div>
-            ))}
-          </div>
-        </AccordionItem>
-      </Accordion>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-cyan-400 text-4xl mb-2">✓</div>
+                <h3 className="font-medium mb-1">No GraphQL endpoints detected</h3>
+                <p className="text-sm text-muted-foreground">
+                  No GraphQL endpoints were found during the scan.
+                </p>
+              </div>
+            )}
+          </AccordionItem>
+
+          <AccordionItem
+            isOpen={openSections.has("tech")}
+            onToggle={() => toggleSection("tech")}
+            title="Technology Stack"
+            icon={<Code className="w-5 h-5" />}
+            badge={result.technologies.length}
+          >
+            {result.technologies.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No technologies detected.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {result.technologies.map((tech, i) => (
+                  <div
+                    key={i}
+                    className="p-4 rounded-lg bg-muted/50 border border-border"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="font-medium text-sm">{tech.name}</div>
+                        <div className="text-xs text-muted-foreground">{tech.category}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground">Confidence</div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-24 h-2 rounded-full bg-muted">
+                            <div
+                              className={`h-full rounded-full ${
+                                tech.confidence === "high" ? "bg-cyan-400" : tech.confidence === "medium" ? "bg-amber-400" : "bg-slate-400"
+                              }`}
+                              style={{ width: `${tech.confidenceScore}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium">{tech.confidenceScore}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-muted-foreground">Evidence:</div>
+                      {tech.evidence.map((ev, j) => (
+                        <div key={j} className="flex items-center gap-2 text-xs">
+                          <span className="text-cyan-400">•</span>
+                          <span className="font-mono text-muted-foreground">{ev}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {tech.signals.map((signal, j) => (
+                        <Badge key={j} variant="outline" className="text-xs border-slate-500/30 text-slate-400">
+                          {signal.type}: {signal.value}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AccordionItem>
+
+        </Accordion>
     </motion.div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Terminal, Key, Cookie, FileCode, Globe, Link, Eye, Lock } from "lucide-react";
+import { Terminal, Key, Cookie, Globe, Eye, Lock } from "lucide-react";
 
 export function ProductShowcaseSection() {
   return (
@@ -52,19 +52,13 @@ export function ProductShowcaseSection() {
                 {`>`} Analyzing 12 security headers...
               </div>
               <div className="text-muted-foreground">
-                {`>`} Hunting for secrets in 14.2KB of JavaScript...
+                {`>`} Hunting for secrets in JavaScript bundles...
               </div>
               <div className="text-muted-foreground">
                 {`>`} Checking cookies for Secure/HttpOnly/SameSite...
               </div>
               <div className="text-muted-foreground">
                 {`>`} Detecting mixed content...
-              </div>
-              <div className="text-muted-foreground">
-                {`>`} Analyzing JavaScript patterns (eval, inline scripts)...
-              </div>
-              <div className="text-muted-foreground">
-                {`>`} Validating subresource integrity...
               </div>
               <div className="text-muted-foreground">
                 {`>`} Technology fingerprinting...
@@ -116,7 +110,7 @@ export function ProductShowcaseSection() {
             { icon: Lock, label: "Security Headers", desc: "12 headers checked" },
             { icon: Key, label: "Secrets Detection", desc: "50+ patterns" },
             { icon: Cookie, label: "Cookie Security", desc: "Secure, HttpOnly, SameSite" },
-            { icon: FileCode, label: "JavaScript Safety", desc: "eval, inline, XSS" },
+            { icon: Globe, label: "Mixed Content", desc: "HTTP on HTTPS pages" },
           ].map((item, i) => (
             <motion.div
               key={i}

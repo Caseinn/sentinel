@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shield, Terminal, Zap, Lock, Target, Eye, Fingerprint, Key, Cookie, FileCode, Globe, Link } from "lucide-react";
+import { Shield, Terminal, Zap, Lock, Target, Eye, Fingerprint, Key, Cookie, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -77,17 +77,15 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
+          className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto"
         >
           {[
-            { icon: Key, label: "Secrets Detection", desc: "50+ patterns for API keys, tokens, database URLs", color: "text-cyan-400" },
+            { icon: Key, label: "Secrets Detection", desc: "50+ patterns for API keys, tokens, DB URLs", color: "text-cyan-400" },
             { icon: Lock, label: "Security Headers", desc: "CSP, HSTS, COOP, CORP, and 9 more", color: "text-amber-400" },
             { icon: Cookie, label: "Cookie Security", desc: "Secure, HttpOnly, SameSite flags", color: "text-green-400" },
-            { icon: FileCode, label: "JavaScript Safety", desc: "eval(), inline scripts, XSS patterns", color: "text-red-400" },
             { icon: Globe, label: "Mixed Content", desc: "HTTP resources on HTTPS pages", color: "text-orange-400" },
-            { icon: Link, label: "Subresource Integrity", desc: "SRI validation for scripts & styles", color: "text-purple-400" },
-            { icon: Eye, label: "GraphQL Security", desc: "Introspection & exposed schemas", color: "text-pink-400" },
-            { icon: Fingerprint, label: "Tech Stack", desc: "100+ frameworks, servers & services", color: "text-blue-400" },
+            { icon: Eye, label: "GraphQL Security", desc: "Introspection & exposed schemas", color: "text-purple-400" },
+            { icon: Fingerprint, label: "Tech Stack", desc: "100+ frameworks, servers & services", color: "text-pink-400" },
           ].map((item, i) => (
             <motion.div
               key={i}

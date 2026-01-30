@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Key, Lock, Eye, FileCode, Globe, Link, Cookie, Fingerprint, CheckCircle } from "lucide-react";
+import { Terminal, Key, Lock, Eye, Globe, Cookie, Fingerprint, CheckCircle } from "lucide-react";
 
 export function TechnicalDifferentiatorsSection() {
   const features = [
@@ -23,19 +23,9 @@ export function TechnicalDifferentiatorsSection() {
       description: "Checks Secure, HttpOnly, SameSite flags on all cookies. Identifies session cookies missing protection.",
     },
     {
-      icon: FileCode,
-      title: "JavaScript Safety",
-      description: "Detects eval(), document.write(), inline scripts, inline handlers, javascript: protocols, and unsafe target=_blank links.",
-    },
-    {
       icon: Globe,
       title: "Mixed Content",
       description: "Finds HTTP resources loaded on HTTPS pages — scripts, stylesheets, images, iframes, and AJAX calls.",
-    },
-    {
-      icon: Link,
-      title: "Subresource Integrity",
-      description: "Validates that external scripts and stylesheets have integrity hashes. Flags missing SRI.",
     },
     {
       icon: Eye,
@@ -53,9 +43,7 @@ export function TechnicalDifferentiatorsSection() {
     { feature: "Secrets Detection (50+ patterns)", sentinel: true, traditional: false },
     { feature: "Security Headers (12 checks)", sentinel: true, traditional: true },
     { feature: "Cookie Security Analysis", sentinel: true, traditional: false },
-    { feature: "JavaScript Pattern Detection", sentinel: true, traditional: false },
     { feature: "Mixed Content Scanning", sentinel: true, traditional: false },
-    { feature: "SRI Validation", sentinel: true, traditional: false },
     { feature: "GraphQL Introspection Check", sentinel: true, traditional: false },
     { feature: "Tech Stack Fingerprinting", sentinel: true, traditional: false },
     { feature: "No Signup Required", sentinel: true, traditional: false },
@@ -81,7 +69,7 @@ export function TechnicalDifferentiatorsSection() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
           {features.map((feature, i) => (
             <motion.div
               key={i}

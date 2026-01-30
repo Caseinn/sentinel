@@ -133,25 +133,6 @@ export function generateMarkdownReport(report: ScanResult): string {
     md += `\n`;
   }
 
-  md += `## JavaScript Security Analysis\n\n`;
-  md += `| Metric | Value |\n`;
-  md += `|--------|-------|\n`;
-  md += `| Inline Scripts | ${report.jsAnalysis.inlineScriptCount} |\n`;
-  md += `| eval() Usage | ${report.jsAnalysis.evalCount} |\n`;
-  md += `| document.write() | ${report.jsAnalysis.documentWriteCount} |\n`;
-  md += `| Inline Handlers | ${report.jsAnalysis.inlineHandlerCount} |\n`;
-  md += `| Total Issues | ${report.jsAnalysis.issues.length} |\n\n`;
-
-  if (report.jsAnalysis.issues.length > 0) {
-    md += `### JavaScript Issues\n\n`;
-    md += `| Type | Severity | Location | Recommendation |\n`;
-    md += `|------|----------|----------|----------------|\n`;
-    for (const issue of report.jsAnalysis.issues) {
-      md += `| ${issue.type} | ${issue.severity.toUpperCase()} | Line ${issue.lineNumber} | ${issue.recommendation.substring(0, 50)}... |\n`;
-    }
-    md += `\n`;
-  }
-
   md += `## TLS Check\n\n`;
   md += `- HTTP → HTTPS Redirect: ${report.tlsCheck.httpRedirectsToHttps ? "Yes" : "No"}\n`;
   md += `- HTTPS Reachable: ${report.tlsCheck.httpsReachable ? "Yes" : "No"}\n`;

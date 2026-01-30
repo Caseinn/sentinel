@@ -14,8 +14,6 @@ export interface ScanResult {
   tlsCheck: TLSResult;
   cookieAnalysis: CookieAnalysis;
   mixedContentAnalysis: MixedContentAnalysis;
-  jsAnalysis: JSAnalysis;
-  sriAnalysis: SRIAnalysis;
   graphQLAnalysis: GraphQLAnalysis;
   summary: {
     critical: number;
@@ -158,53 +156,6 @@ export interface MixedContentAnalysis {
   };
 }
 
-export interface JSAnalysisIssue {
-  type: string;
-  severity: "critical" | "high" | "medium" | "low";
-  description: string;
-  location: string;
-  lineNumber: number;
-  recommendation: string;
-}
-
-export interface JSAnalysis {
-  hasInlineScripts: boolean;
-  inlineScriptCount: number;
-  hasEval: boolean;
-  evalCount: number;
-  hasDocumentWrite: boolean;
-  documentWriteCount: number;
-  hasInlineHandlers: boolean;
-  inlineHandlerCount: number;
-  hasDangerousProtocols: boolean;
-  dangerousProtocolCount: number;
-  hasTargetBlank: boolean;
-  targetBlankCount: number;
-  missingNoopener: number;
-  issues: JSAnalysisIssue[];
-  summary: {
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-  };
-}
-
-export interface SRIAnalysis {
-  externalScripts: number;
-  scriptsWithSRI: number;
-  externalStylesheets: number;
-  stylesheetsWithSRI: number;
-  scriptsWithoutSRI: string[];
-  stylesheetsWithoutSRI: string[];
-  summary: {
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-  };
-}
-
 export interface GraphQLAnalysis {
   endpoint?: string;
   introspectionEnabled: boolean;
@@ -266,11 +217,6 @@ const SCORING = {
   MIXED_HIGH: -10,
   MIXED_MEDIUM: -5,
   MIXED_LOW: -2,
-  JS_HIGH: -5,
-  JS_MEDIUM: -3,
-  JS_LOW: -1,
-  SRI_SCRIPT: -5,
-  SRI_STYLESHEET: -2,
   GRAPHQL_HIGH: -15,
   GRAPHQL_MEDIUM: -10,
   GRAPHQL_LOW: -5,
@@ -279,19 +225,16 @@ const SCORING = {
 const WEIGHTED_SCORING = {
   baseScore: 50,
   weights: {
-    securityHeaders: 0.20,
-    secretDetection: 0.25,
+    securityHeaders: 0.25,
+    secretDetection: 0.30,
     transportSecurity: 0.15,
     contentSecurity: 0.15,
-    cookieSecurity: 0.10,
-    thirdPartyRisks: 0.15,
+    cookieSecurity: 0.15,
   },
   bonuses: {
     strongCSP: 15,
     hstsPreload: 10,
     noSecrets: 10,
-    sriAllScripts: 5,
-    sriAllStylesheets: 3,
   },
 } as const;
 
@@ -1632,210 +1575,6 @@ function analyzeMixedContent(html: string, finalUrl: string): MixedContentAnalys
   };
 }
 
-function analyzeJavaScript(html: string): JSAnalysis {
-  const issues: JSAnalysisIssue[] = [];
-  let critical = 0;
-  let high = 0;
-  let medium = 0;
-  let low = 0;
-
-  const lines = html.split("\n");
-
-  const inlineScriptRegex = /<script[^>]*>(?!<\s*\/script>)/gi;
-  let match: RegExpExecArray | null;
-  const scriptRegex = new RegExp(inlineScriptRegex.source, inlineScriptRegex.flags);
-  let inlineScriptCount = 0;
-
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const scriptContent = match[0];
-    if (!scriptContent.includes("src=")) {
-      inlineScriptCount++;
-      const lineNumber = html.substring(0, match.index).split("\n").length;
-      issues.push({
-        type: "Inline Script",
-        severity: "high",
-        description: "Inline JavaScript detected. External scripts are preferred for better CSP and security.",
-        location: `<script> tag`,
-        lineNumber,
-        recommendation: "Move inline JavaScript to external files and reference them with src attributes. This enables better Content-Security-Policy enforcement.",
-      });
-      high++;
-    }
-  }
-
-  const evalRegex = /\beval\s*\(/g;
-  let evalCount = 0;
-  while ((match = evalRegex.exec(html)) !== null) {
-    evalCount++;
-    const lineNumber = html.substring(0, match.index).split("\n").length;
-    issues.push({
-      type: "eval() Usage",
-      severity: "high",
-      description: "Use of eval() detected, which is a security risk.",
-      location: "JavaScript code",
-      lineNumber,
-      recommendation: "Avoid using eval(). It can execute arbitrary code and makes applications vulnerable to XSS attacks. Use alternatives like JSON.parse() or Function constructor with extreme caution.",
-    });
-    high++;
-  }
-
-  const documentWriteRegex = /document\.write\s*\(/g;
-  let documentWriteCount = 0;
-  while ((match = documentWriteRegex.exec(html)) !== null) {
-    documentWriteCount++;
-    const lineNumber = html.substring(0, match.index).split("\n").length;
-    issues.push({
-      type: "document.write() Usage",
-      severity: "medium",
-      description: "Use of document.write() detected. This is deprecated and can cause performance issues.",
-      location: "JavaScript code",
-      lineNumber,
-      recommendation: "Replace document.write() with modern DOM manipulation methods like document.createElement(), appendChild(), or innerHTML.",
-    });
-    medium++;
-  }
-
-  const inlineHandlerRegex = /\s+on\w+\s*=/g;
-  let inlineHandlerCount = 0;
-  while ((match = inlineHandlerRegex.exec(html)) !== null) {
-    inlineHandlerCount++;
-    const lineNumber = html.substring(0, match.index).split("\n").length;
-    issues.push({
-      type: "Inline Event Handler",
-      severity: "medium",
-      description: "Inline event handlers (onclick, onmouseover, etc.) detected.",
-      location: "HTML element",
-      lineNumber,
-      recommendation: "Move event handlers to external JavaScript files using addEventListener() for better CSP compliance and code organization.",
-    });
-    medium++;
-  }
-
-  const dangerousProtocolRegex = /javascript:/gi;
-  let dangerousProtocolCount = 0;
-  while ((match = dangerousProtocolRegex.exec(html)) !== null) {
-    dangerousProtocolCount++;
-    const lineNumber = html.substring(0, match.index).split("\n").length;
-    issues.push({
-      type: "JavaScript Protocol",
-      severity: "high",
-      description: "javascript: protocol detected in href or other attributes.",
-      location: "HTML attribute",
-      lineNumber,
-      recommendation: "Avoid using javascript: protocol. Use # or proper event handlers instead. This can be exploited for XSS attacks.",
-    });
-    high++;
-  }
-
-  const targetBlankRegex = /<a[^>]+target\s*=\s*["']_blank["'][^>]*>(?!.*rel\s*=\s*["']noopener[^"']*["'])/gi;
-  let targetBlankCount = 0;
-  let missingNoopener = 0;
-
-  const targetRegex = new RegExp(targetBlankRegex.source, targetBlankRegex.flags);
-  while ((match = targetRegex.exec(html)) !== null) {
-    targetBlankCount++;
-    const lineNumber = html.substring(0, match.index).split("\n").length;
-    issues.push({
-      type: "target='_blank' without rel='noopener'",
-      severity: "medium",
-      description: "Links with target='_blank' should also have rel='noopener' for security.",
-      location: `<a> tag`,
-      lineNumber,
-      recommendation: "Add rel='noopener noreferrer' to links with target='_blank' to prevent window.opener vulnerabilities.",
-    });
-    missingNoopener++;
-    medium++;
-  }
-
-  return {
-    hasInlineScripts: inlineScriptCount > 0,
-    inlineScriptCount,
-    hasEval: evalCount > 0,
-    evalCount,
-    hasDocumentWrite: documentWriteCount > 0,
-    documentWriteCount,
-    hasInlineHandlers: inlineHandlerCount > 0,
-    inlineHandlerCount,
-    hasDangerousProtocols: dangerousProtocolCount > 0,
-    dangerousProtocolCount,
-    hasTargetBlank: targetBlankCount > 0,
-    targetBlankCount,
-    missingNoopener,
-    issues,
-    summary: {
-      critical: 0,
-      high,
-      medium,
-      low,
-    },
-  };
-}
-
-function analyzeSRI(html: string): SRIAnalysis {
-  const scriptsWithoutSRI: string[] = [];
-  const stylesheetsWithoutSRI: string[] = [];
-
-  const scriptRegex = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi;
-  const linkStylesheetRegex = /<link[^>]+rel=["']?stylesheet["']?[^>]*>/gi;
-  const scriptWithIntegrityRegex = /<script[^>]+integrity=["']([^"']+)["'][^>]*>/gi;
-  const linkWithIntegrityRegex = /<link[^>]+integrity=["']([^"']+)["'][^>]*>/gi;
-
-  let match: RegExpExecArray | null;
-  let scriptsWithSRI = 0;
-  let externalScripts = 0;
-
-  while ((match = scriptWithIntegrityRegex.exec(html)) !== null) {
-    scriptsWithSRI++;
-  }
-
-  const scriptSrcRegex = new RegExp(scriptRegex.source, scriptRegex.flags);
-  while ((match = scriptSrcRegex.exec(html)) !== null) {
-    externalScripts++;
-    const srcMatch = match[0].match(/src=["']([^"']+)["']/);
-    if (srcMatch) {
-      const src = srcMatch[1];
-      if (!match[0].includes("integrity=")) {
-        scriptsWithoutSRI.push(src);
-      }
-    }
-  }
-
-  let stylesheetsWithSRI = 0;
-  let externalStylesheets = 0;
-
-  while ((match = linkWithIntegrityRegex.exec(html)) !== null) {
-    stylesheetsWithSRI++;
-  }
-
-  const linkStylesheetSrcRegex = new RegExp(linkStylesheetRegex.source, linkStylesheetRegex.flags);
-  while ((match = linkStylesheetSrcRegex.exec(html)) !== null) {
-    externalStylesheets++;
-    if (!match[0].includes("integrity=")) {
-      const hrefMatch = match[0].match(/href=["']([^"']+)["']/);
-      if (hrefMatch) {
-        stylesheetsWithoutSRI.push(hrefMatch[1]);
-      }
-    }
-  }
-
-  const high = scriptsWithoutSRI.length;
-
-  return {
-    externalScripts,
-    scriptsWithSRI,
-    externalStylesheets,
-    stylesheetsWithSRI,
-    scriptsWithoutSRI,
-    stylesheetsWithoutSRI,
-    summary: {
-      critical: 0,
-      high,
-      medium: 0,
-      low: stylesheetsWithoutSRI.length,
-    },
-  };
-}
-
 async function analyzeGraphQL(finalUrl: string): Promise<GraphQLAnalysis> {
   const result: GraphQLAnalysis = {
     endpoint: undefined,
@@ -2372,55 +2111,6 @@ export async function scanURL(url: string): Promise<ScanResult> {
     });
   }
 
-  const jsAnalysis = analyzeJavaScript(htmlContent);
-
-  for (const issue of jsAnalysis.issues) {
-    let points = 0;
-    switch (issue.severity) {
-      case "critical":
-        points = SCORING.JS_HIGH;
-        break;
-      case "high":
-        points = SCORING.JS_HIGH;
-        break;
-      case "medium":
-        points = SCORING.JS_MEDIUM;
-        break;
-      case "low":
-        points = SCORING.JS_LOW;
-        break;
-    }
-    scoringDetails.push({
-      category: "content",
-      item: `JS: ${issue.type}`,
-      points,
-      reason: issue.description,
-      recommendation: issue.recommendation,
-    });
-  }
-
-  const sriAnalysis = analyzeSRI(htmlContent);
-
-  for (const src of sriAnalysis.scriptsWithoutSRI) {
-    scoringDetails.push({
-      category: "content",
-      item: "SRI: Script without integrity",
-      points: SCORING.SRI_SCRIPT,
-      reason: `External script loaded without Subresource Integrity: ${src}`,
-      recommendation: `Add integrity attribute (SHA256/SHA384/SHA512) to the script tag for ${src}. This protects against CDN compromises and supply chain attacks.`,
-    });
-  }
-
-  for (const href of sriAnalysis.stylesheetsWithoutSRI) {
-    scoringDetails.push({
-      category: "content",
-      item: "SRI: Stylesheet without integrity",
-      points: SCORING.SRI_STYLESHEET,
-      reason: `External stylesheet loaded without Subresource Integrity: ${href}`,
-      recommendation: `Add integrity attribute to the link tag for ${href} to protect against stylesheet tampering.`,
-    });
-  }
-
   const graphQLAnalysis = await analyzeGraphQL(finalUrl);
 
   if (graphQLAnalysis.endpoint && graphQLAnalysis.severity) {
@@ -2503,37 +2193,15 @@ export async function scanURL(url: string): Promise<ScanResult> {
     });
   }
 
-  if (sriAnalysis.externalScripts > 0 && sriAnalysis.scriptsWithoutSRI.length === 0) {
-    score += WEIGHTED_SCORING.bonuses.sriAllScripts;
-    scoringDetails.push({
-      category: "content",
-      item: "All Scripts Have SRI",
-      points: WEIGHTED_SCORING.bonuses.sriAllScripts,
-      reason: "All external scripts have Subresource Integrity",
-      recommendation: "Continue maintaining SRI for all external resources.",
-    });
-  }
-
-  if (sriAnalysis.externalStylesheets > 0 && sriAnalysis.stylesheetsWithoutSRI.length === 0) {
-    score += WEIGHTED_SCORING.bonuses.sriAllStylesheets;
-    scoringDetails.push({
-      category: "content",
-      item: "All Stylesheets Have SRI",
-      points: WEIGHTED_SCORING.bonuses.sriAllStylesheets,
-      reason: "All external stylesheets have Subresource Integrity",
-      recommendation: "Continue maintaining SRI for all external resources.",
-    });
-  }
-
   score = Math.max(0, Math.min(100, score));
 
   const duration = Date.now() - startTime;
 
   const summary = {
-    critical: secretResults.filter((s) => s.severity === "critical").length + cookieAnalysis.summary.critical + mixedContentAnalysis.summary.critical + jsAnalysis.summary.critical + sriAnalysis.summary.critical + (graphQLAnalysis.severity === "high" ? 1 : 0),
-    high: secretResults.filter((s) => s.severity === "high").length + headerResults.filter((h) => h.status === "fail" && h.severity === "high").length + cookieAnalysis.summary.high + mixedContentAnalysis.summary.high + jsAnalysis.summary.high + sriAnalysis.summary.high + (graphQLAnalysis.severity === "medium" ? 1 : 0),
-    medium: secretResults.filter((s) => s.severity === "medium").length + headerResults.filter((h) => h.status === "fail" && h.severity === "medium").length + cookieAnalysis.summary.medium + mixedContentAnalysis.summary.medium + jsAnalysis.summary.medium + sriAnalysis.summary.medium + (graphQLAnalysis.severity === "low" ? 1 : 0),
-    low: secretResults.filter((s) => s.severity === "low").length + headerResults.filter((h) => h.status === "fail" && h.severity === "low").length + cookieAnalysis.summary.low + mixedContentAnalysis.summary.low + jsAnalysis.summary.low + sriAnalysis.summary.low,
+    critical: secretResults.filter((s) => s.severity === "critical").length + cookieAnalysis.summary.critical + mixedContentAnalysis.summary.critical + (graphQLAnalysis.severity === "high" ? 1 : 0),
+    high: secretResults.filter((s) => s.severity === "high").length + headerResults.filter((h) => h.status === "fail" && h.severity === "high").length + cookieAnalysis.summary.high + mixedContentAnalysis.summary.high + (graphQLAnalysis.severity === "medium" ? 1 : 0),
+    medium: secretResults.filter((s) => s.severity === "medium").length + headerResults.filter((h) => h.status === "fail" && h.severity === "medium").length + cookieAnalysis.summary.medium + mixedContentAnalysis.summary.medium + (graphQLAnalysis.severity === "low" ? 1 : 0),
+    low: secretResults.filter((s) => s.severity === "low").length + headerResults.filter((h) => h.status === "fail" && h.severity === "low").length + cookieAnalysis.summary.low + mixedContentAnalysis.summary.low,
     passed: headerResults.filter((h) => h.status === "pass").length,
     info: technologyResults.length,
   };
@@ -2552,8 +2220,6 @@ export async function scanURL(url: string): Promise<ScanResult> {
     tlsCheck,
     cookieAnalysis,
     mixedContentAnalysis,
-    jsAnalysis,
-    sriAnalysis,
     graphQLAnalysis,
     summary,
     scoringDetails,
